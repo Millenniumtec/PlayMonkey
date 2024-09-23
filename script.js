@@ -3,9 +3,9 @@ var maleCharacterImage = 'images/leleco.png';
 var femaleCharacterImage = 'images/leleca.png';
 
 // Carrega a música de fundo
-let bgMusic = new Audio('sounds/bgMusic1.mp3');
-bgMusic.loop = true; // Configura a música para tocar em loop
+const bgMusic = new Audio('sounds/bgMusic1.mp3');
 bgMusic.volume = 0.3
+bgMusic.loop = true; // Configura a música para tocar em loop
 
 let hitSound = new Audio('sounds/hitGround.mp3');
 
@@ -26,6 +26,12 @@ document.getElementById('male-character').addEventListener('click', () => {
 
 document.getElementById('female-character').addEventListener('click', () => {
   startGameWithCharacter(femaleCharacterImage);
+});
+
+// Adicionar event listener para iniciar a música de fundo após a interação do usuário
+document.addEventListener('click', function playBgMusic() {
+  bgMusic.play();
+  document.removeEventListener('click', playBgMusic); // Remove o event listener após a primeira interação
 });
 
 // Extend the base functionality of JavaScript
@@ -374,10 +380,6 @@ function draw() {
   drawPlatforms();
   drawHero();
   drawSticks();
-
-  document.addEventListener('DOMContentLoaded', (event) => {
-    bgMusic.play();
-  });
 
   // Restore transformation
   ctx.restore();

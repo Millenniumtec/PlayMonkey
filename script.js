@@ -1,6 +1,16 @@
 const ninjaImage = new Image();
-var maleCharacterImage = 'leleco.png';
-var femaleCharacterImage = 'leleca.png';
+var maleCharacterImage = 'images/leleco.png';
+var femaleCharacterImage = 'images/leleca.png';
+
+// Carrega a música de fundo
+let bgMusic = new Audio('sounds/bgMusic1.mp3');
+bgMusic.loop = true; // Configura a música para tocar em loop
+bgMusic.volume = 0.3
+
+let hitSound = new Audio('sounds/hitGround.mp3');
+
+let fallingSound = new Audio('sounds/fallingSound.mp3');
+fallingSound.volume = 0.2;
 
 // Função para iniciar o jogo com o personagem selecionado
 function startGameWithCharacter(characterImage) {
@@ -52,6 +62,9 @@ const heroDistanceFromEdge = 10; // While waiting
 const paddingX = 100; // The waiting position of the hero in from the original canvas size
 const perfectAreaSize = 10;
 
+
+let highscore = 0; // Recorde pessoal
+
 // The background moves slower than the hero
 const backgroundSpeedMultiplier = 0.2;
 
@@ -63,13 +76,15 @@ const hill2Amplitude = 20;
 const hill2Stretch = 0.5;
 
 const stretchingSpeed = 4; // Milliseconds it takes to draw a pixel
-const turningSpeed = 4; // Milliseconds it takes to turn a degree
+const turningSpeed = 4.5; // Milliseconds it takes to turn a degree
 const walkingSpeed = 4;
 const transitioningSpeed = 2;
-const fallingSpeed = 2;
+const fallingSpeed = 3;
 
 const heroWidth = 60; // 24
 const heroHeight = 60; // 40
+
+let heroRotation = 0;
 
 const canvas = document.getElementById("game");
 canvas.width = window.innerWidth; // Make the Canvas full screen
@@ -81,6 +96,12 @@ const introductionElement = document.getElementById("introduction");
 const perfectElement = document.getElementById("perfect");
 const restartButton = document.getElementById("restart");
 const scoreElement = document.getElementById("score");
+// Inicializa o recorde
+let highScore = localStorage.getItem('highScore') || 0;
+
+// Exibe o recorde na tela
+const highScoreElement = document.getElementById('highscore');
+highScoreElement.innerText = `Recorde: ${highScore}`;
 
 // Initialize layout
 resetGame();
@@ -92,11 +113,13 @@ function resetGame() {
   lastTimestamp = undefined;
   sceneOffset = 0;
   score = 0;
+  heroRotation = 0;
 
   introductionElement.style.opacity = 1;
   perfectElement.style.opacity = 0;
   restartButton.style.display = "none";
   scoreElement.innerText = score;
+
 
   // The first platform is always the same
   // x + w has to match paddingX
@@ -200,12 +223,15 @@ window.addEventListener("resize", function (event) {
 window.requestAnimationFrame(animate);
 
 // The main game loop
+
 function animate(timestamp) {
   if (!lastTimestamp) {
     lastTimestamp = timestamp;
     window.requestAnimationFrame(animate);
     return;
   }
+
+  
 
   switch (phase) {
     case "waiting":
@@ -216,6 +242,7 @@ function animate(timestamp) {
     }
     case "turning": {
       sticks.last().rotation += (timestamp - lastTimestamp) / turningSpeed;
+      hitSound.play(); // Toca o som quando a ponte atinge a plataforma
 
       if (sticks.last().rotation > 90) {
         sticks.last().rotation = 90;
@@ -225,7 +252,11 @@ function animate(timestamp) {
           // Increase score
           score += perfectHit ? 2 : 1;
           scoreElement.innerText = score;
-          var maleCharacterImage = 'leleca.png';
+          if (score > highScore) {
+            highScore = score;
+            localStorage.setItem('highScore', highScore);
+            highScoreElement.innerText = `Recorde: ${highScore}`;
+          }
 
           if (perfectHit) {
             perfectElement.style.opacity = 1;
@@ -258,6 +289,7 @@ function animate(timestamp) {
         if (heroX > maxHeroX) {
           heroX = maxHeroX;
           phase = "falling";
+          
         }
       }
       break;
@@ -281,8 +313,10 @@ function animate(timestamp) {
     case "falling": {
       if (sticks.last().rotation < 180)
         sticks.last().rotation += (timestamp - lastTimestamp) / turningSpeed;
-
+      fallingSound.play(); // Toca o som quando o herói cai
       heroY += (timestamp - lastTimestamp) / fallingSpeed;
+      heroRotation += (timestamp - lastTimestamp) / 10; // Incrementa a rotação do herói
+
       const maxHeroY =
         platformHeight + 100 + (window.innerHeight - canvasHeight) / 2;
       if (heroY > maxHeroY) {
@@ -341,6 +375,10 @@ function draw() {
   drawHero();
   drawSticks();
 
+  document.addEventListener('DOMContentLoaded', (event) => {
+    bgMusic.play();
+  });
+
   // Restore transformation
   ctx.restore();
 }
@@ -381,9 +419,16 @@ function drawHero() {
     heroX - heroWidth / 2,
     heroY + canvasHeight - platformHeight - heroHeight / 2
   );
+  ctx.rotate((Math.PI / 180) * heroRotation);
 
   // Desenhe a imagem do ninja
-  ctx.drawImage(ninjaImage, -heroWidth / 2, -heroHeight / 2, heroWidth, heroHeight);
+  ctx.drawImage(
+    ninjaImage,
+    -heroWidth / 2,
+    -heroHeight / 2,
+    heroWidth,
+    heroHeight
+  );
 
   ctx.restore();
 }
